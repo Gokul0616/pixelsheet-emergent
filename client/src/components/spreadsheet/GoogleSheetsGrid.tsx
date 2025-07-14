@@ -71,26 +71,14 @@ export function GoogleSheetsGrid({
     cellMap.set(`${cell.row}-${cell.column}`, cell);
   });
 
-  // Save cell mutation
+  // Save cell mutation using the apiRequest helper
   const saveCellMutation = useMutation({
     mutationFn: async ({ row, column, value }: { row: number; column: number; value: string }) => {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/sheets/${sheetId}/cells/${row}/${column}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          value,
-          dataType: value.startsWith('=') ? 'formula' : isNaN(Number(value)) ? 'text' : 'number',
-          formula: value.startsWith('=') ? value : null,
-        }),
+      const response = await apiRequest('PUT', `/api/sheets/${sheetId}/cells/${row}/${column}`, {
+        value,
+        dataType: value.startsWith('=') ? 'formula' : isNaN(Number(value)) ? 'text' : 'number',
+        formula: value.startsWith('=') ? value : null,
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save cell');
-      }
       
       return response.json();
     },
@@ -99,9 +87,11 @@ export function GoogleSheetsGrid({
     },
     onError: (error) => {
       console.error('Cell save error:', error);
+      // Log more details for debugging
+      console.log('Auth tokens:', localStorage.getItem('auth_tokens'));
       toast({
-        title: 'Error',
-        description: 'Failed to save cell. Please check your permissions.',
+        title: 'Save Failed',
+        description: 'Please check your connection and try again.',
         variant: 'destructive',
       });
     },
@@ -273,7 +263,7 @@ export function GoogleSheetsGrid({
       });
     }
     setClipboard(cells);
-    toast({ title: 'Copied', description: `${cells.length} cell(s) copied` });
+    // Silent copy operation - no toast
   };
 
   const pasteSelection = () => {
@@ -295,7 +285,7 @@ export function GoogleSheetsGrid({
       }
     });
     
-    toast({ title: 'Pasted', description: `${clipboard.length} cell(s) pasted` });
+    // Silent paste operation - no toast
   };
 
   const cutSelection = () => {
@@ -389,15 +379,20 @@ export function GoogleSheetsGrid({
       <div
         key={cellKey}
         className={cn(
-          'relative border-r border-b border-gray-200 h-8 min-w-[100px] max-w-[200px] overflow-hidden',
-          'hover:bg-blue-50 cursor-cell select-none',
-          isSelected && 'ring-2 ring-blue-500 bg-blue-50',
-          isInSelection && 'bg-blue-100',
+          'relative border-r border-b border-gray-300 h-6 min-w-[100px] flex items-center',
+          'hover:bg-blue-50 cursor-cell select-none text-sm',
+          'transition-all duration-75',
+          isSelected && !isInSelection && 'ring-2 ring-blue-600 bg-white z-10',
+          isInSelection && !isSelected && 'bg-blue-100 ring-1 ring-blue-300',
+          isSelected && isInSelection && 'ring-2 ring-blue-600 bg-blue-50 z-10',
           cell?.formatting?.backgroundColor && `bg-${cell.formatting.backgroundColor}`,
-          cell?.formatting?.bold && 'font-bold',
+          cell?.formatting?.bold && 'font-semibold',
           cell?.formatting?.italic && 'italic',
           cell?.formatting?.textAlign && `text-${cell.formatting.textAlign}`
         )}
+        style={{
+          borderColor: isSelected ? '#2563eb' : isInSelection ? '#93c5fd' : '#d1d5db',
+        }}
         onMouseDown={(e) => handleMouseDown(row, col, e)}
         onMouseEnter={() => handleMouseEnter(row, col)}
         onMouseUp={handleMouseUp}
@@ -408,19 +403,19 @@ export function GoogleSheetsGrid({
             ref={inputRef}
             value={editingValue}
             onChange={(e) => setEditingValue(e.target.value)}
-            className="w-full h-full px-1 border-none outline-none bg-white"
+            className="w-full h-full px-2 border-none outline-none bg-white text-xs"
             autoFocus
           />
         ) : (
-          <div className="px-1 py-1 text-sm truncate">
+          <div className="px-2 py-1 text-xs truncate w-full">
             {value}
           </div>
         )}
         
-        {/* Fill handle */}
+        {/* Fill handle - Google Sheets style small blue square */}
         {isSelected && !isEditing && (
           <div
-            className="absolute bottom-0 right-0 w-2 h-2 bg-blue-500 cursor-crosshair"
+            className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-600 cursor-crosshair border border-white"
             onMouseDown={handleFillHandleMouseDown}
           />
         )}
@@ -432,14 +427,14 @@ export function GoogleSheetsGrid({
     <div className="relative w-full h-full overflow-auto" ref={gridRef}>
       <div className="sticky top-0 left-0 z-20 bg-gray-100 border-b border-gray-300">
         {/* Corner cell */}
-        <div className="absolute top-0 left-0 w-12 h-8 bg-gray-200 border-r border-b border-gray-300" />
+        <div className="absolute top-0 left-0 w-12 h-6 bg-gray-200 border-r border-b border-gray-300" />
         
         {/* Column headers */}
         <div className="flex ml-12">
           {Array.from({ length: COLS }, (_, i) => (
             <div
               key={i}
-              className="min-w-[100px] max-w-[200px] h-8 border-r border-gray-300 bg-gray-100 flex items-center justify-center text-sm font-medium"
+              className="min-w-[100px] h-6 border-r border-gray-300 bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600"
             >
               {columnToLetter(i + 1)}
             </div>
@@ -453,7 +448,7 @@ export function GoogleSheetsGrid({
           {Array.from({ length: ROWS }, (_, i) => (
             <div
               key={i}
-              className="w-12 h-8 border-b border-gray-300 bg-gray-100 flex items-center justify-center text-sm font-medium"
+              className="w-12 h-6 border-b border-gray-300 bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600"
             >
               {i + 1}
             </div>
