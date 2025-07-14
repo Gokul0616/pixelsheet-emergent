@@ -138,6 +138,158 @@ export function registerAuthRoutes(app: Express, storage: JsonFileStorage) {
     }
   );
 
+  // Refresh token
+  app.post("/api/auth/refresh", async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return res.status(401).json({ error: 'Refresh token required' });
+      }
+
+      // Verify refresh token
+      const decoded = authService.verifyToken(refreshToken, true);
+      if (!decoded) {
+        return res.status(401).json({ error: 'Invalid refresh token' });
+      }
+
+      // Check if session exists
+      const session = await storage.getSessionByRefreshToken(refreshToken);
+      if (!session) {
+        return res.status(401).json({ error: 'Session not found' });
+      }
+
+      // Generate new tokens
+      const tokens = authService.generateTokens(decoded.userId);
+
+      res.json({ tokens });
+    } catch (error) {
+      res.status(401).json({ 
+        error: error instanceof Error ? error.message : 'Token refresh failed' 
+      });
+    }
+  });
+
+  // Logout
+  app.post("/api/auth/logout", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (token) {
+        await authService.logout(token);
+      }
+
+      res.json({ message: 'Logout successful' });
+    } catch (error) {
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Logout failed' 
+      });
+    }
+  });
+
+  // Logout all sessions
+  app.post("/api/auth/logout-all", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      await authService.logoutAllSessions(req.user.id);
+
+      res.json({ message: 'All sessions logged out successfully' });
+    } catch (error) {
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Logout failed' 
+      });
+    }
+  });
+
+  // Get profile
+  app.get("/api/auth/profile", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { password: _, mfaSecret, mfaBackupCodes, ...userResponse } = req.user;
+
+      res.json({ user: userResponse });
+    } catch (error) {
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to get profile' 
+      });
+    }
+  });
+
+  // Update profile
+  app.put("/api/auth/profile", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { username, email } = req.body;
+      
+      if (!username && !email) {
+        return res.status(400).json({ error: 'Username or email required' });
+      }
+
+      const updates: any = {};
+      if (username) updates.username = username;
+      if (email) updates.email = email;
+      updates.updatedAt = new Date();
+
+      await storage.updateAuthUser(req.user.id, updates);
+
+      res.json({ message: 'Profile updated successfully' });
+    } catch (error) {
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Profile update failed' 
+      });
+    }
+  });
+
+  // Change password
+  app.put("/api/auth/change-password", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current and new password required' });
+      }
+
+      // Verify current password
+      const isValidPassword = await authService.verifyPassword(currentPassword, req.user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedPassword = await authService.hashPassword(newPassword);
+
+      // Update password
+      await storage.updateAuthUser(req.user.id, {
+        password: hashedPassword,
+        updatedAt: new Date(),
+      });
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Password change failed' 
+      });
+    }
+  });
+
   // Setup MFA
   app.post("/api/auth/mfa/setup", async (req: AuthRequest, res) => {
     try {

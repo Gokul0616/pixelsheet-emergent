@@ -25,6 +25,9 @@ import {
 const jsonStorage = new JsonFileStorage();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Trust proxy for Replit environment
+  app.set('trust proxy', true);
+  
   // Security middleware
   app.use(helmet({
     contentSecurityPolicy: {

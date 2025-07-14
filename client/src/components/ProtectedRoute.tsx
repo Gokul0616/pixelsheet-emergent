@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import { Loader2, FileSpreadsheet } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -13,6 +14,7 @@ export default function ProtectedRoute({
   fallback 
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -34,8 +36,8 @@ export default function ProtectedRoute({
   if (!isAuthenticated) {
     if (fallback) return <>{fallback}</>;
     
-    // Redirect to login page
-    window.location.href = '/login';
+    // Use client-side routing instead of hard redirect
+    setLocation('/login');
     return null;
   }
 
