@@ -101,11 +101,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/spreadsheets", async (req, res) => {
     try {
       const userId = (req as any).user.id;
-      const data = insertSpreadsheetSchema.parse({ ...req.body, ownerId: userId });
+      const data = insertSpreadsheetSchema.parse({ 
+        ...req.body, 
+        ownerId: userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Create spreadsheet
       const spreadsheet = await jsonStorage.createSpreadsheet(data);
-      res.json(spreadsheet);
+      
+      // Create default sheet for the spreadsheet
+      const defaultSheet = await jsonStorage.createSheet({
+        spreadsheetId: spreadsheet.id,
+        name: 'Sheet1',
+        position: 0,
+        isVisible: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      res.json({ ...spreadsheet, defaultSheetId: defaultSheet.id });
     } catch (error) {
       res.status(400).json({ error: "Invalid spreadsheet data" });
+    }
+  });
+
+  // Duplicate spreadsheet
+  app.post("/api/spreadsheets/:id/duplicate", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = (req as any).user.id;
+      
+      const originalSpreadsheet = await jsonStorage.getSpreadsheet(id);
+      if (!originalSpreadsheet) {
+        return res.status(404).json({ error: "Spreadsheet not found" });
+      }
+      
+      // Check if user has access to the original spreadsheet
+      if (originalSpreadsheet.ownerId !== userId && !originalSpreadsheet.isPublic) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Create duplicate spreadsheet
+      const duplicateData = {
+        name: `Copy of ${originalSpreadsheet.name}`,
+        description: originalSpreadsheet.description,
+        ownerId: userId,
+        isPublic: false,
+        shareSettings: originalSpreadsheet.shareSettings,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const duplicateSpreadsheet = await jsonStorage.createSpreadsheet(duplicateData);
+      
+      // Get original sheets and duplicate them
+      const originalSheets = await jsonStorage.getSheetsBySpreadsheet(id);
+      for (const sheet of originalSheets) {
+        const duplicateSheet = await jsonStorage.createSheet({
+          spreadsheetId: duplicateSpreadsheet.id,
+          name: sheet.name,
+          position: sheet.position,
+          isVisible: sheet.isVisible,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        // Get original cells and duplicate them
+        const originalCells = await jsonStorage.getCellsBySheet(sheet.id);
+        for (const cell of originalCells) {
+          await jsonStorage.createCell({
+            sheetId: duplicateSheet.id,
+            row: cell.row,
+            column: cell.column,
+            value: cell.value,
+            formula: cell.formula,
+            dataType: cell.dataType,
+            formatting: cell.formatting,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
+      }
+      
+      res.json(duplicateSpreadsheet);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to duplicate spreadsheet" });
+    }
+  });
+
+  // Delete spreadsheet
+  app.delete("/api/spreadsheets/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = (req as any).user.id;
+      
+      const spreadsheet = await jsonStorage.getSpreadsheet(id);
+      if (!spreadsheet) {
+        return res.status(404).json({ error: "Spreadsheet not found" });
+      }
+      
+      // Only owner can delete
+      if (spreadsheet.ownerId !== userId) {
+        return res.status(403).json({ error: "Only the owner can delete this spreadsheet" });
+      }
+      
+      // Delete all associated data (sheets, cells, etc.)
+      const sheets = await jsonStorage.getSheetsBySpreadsheet(id);
+      for (const sheet of sheets) {
+        // Delete cells first
+        const cells = await jsonStorage.getCellsBySheet(sheet.id);
+        for (const cell of cells) {
+          await jsonStorage.deleteCell(cell.id);
+        }
+        // Delete sheet
+        await jsonStorage.deleteSheet(sheet.id);
+      }
+      
+      // Delete spreadsheet
+      await jsonStorage.deleteSpreadsheet(id);
+      
+      res.json({ message: "Spreadsheet deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete spreadsheet" });
     }
   });
 
@@ -181,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/sheets/:sheetId/cells/:row/:column", async (req, res) => {
+  app.put("/api/sheets/:sheetId/cells/:row/:column", authenticateToken(jsonStorage), async (req, res) => {
     try {
       const sheetId = parseInt(req.params.sheetId);
       const row = parseInt(req.params.row);
@@ -189,11 +308,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = req.body;
       const userId = (req as any).user.id;
       
-      const cell = await jsonStorage.updateCellByPosition(sheetId, row, column, updates);
+      // Check if user has access to this sheet
+      const sheet = await jsonStorage.getSheet(sheetId);
+      if (!sheet) {
+        return res.status(404).json({ error: "Sheet not found" });
+      }
+      
+      const spreadsheet = await jsonStorage.getSpreadsheet(sheet.spreadsheetId);
+      if (!spreadsheet) {
+        return res.status(404).json({ error: "Spreadsheet not found" });
+      }
+      
+      // Check access - owner or if public and allows editing
+      if (spreadsheet.ownerId !== userId && (!spreadsheet.isPublic || !spreadsheet.shareSettings?.allowEdit)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const cell = await jsonStorage.updateCellByPosition(sheetId, row, column, {
+        ...updates,
+        updatedAt: new Date()
+      });
       
       // Log activity
       await jsonStorage.createActivity({
-        spreadsheetId: 1, // TODO: Get from sheet
+        spreadsheetId: sheet.spreadsheetId,
         userId: userId,
         action: "cell_updated",
         details: { sheetId, row, column, value: updates.value },
@@ -201,7 +339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(cell);
     } catch (error) {
-      res.status(400).json({ error: "Failed to update cell" });
+      console.error('Cell update error:', error);
+      res.status(500).json({ error: "Failed to update cell" });
     }
   });
 

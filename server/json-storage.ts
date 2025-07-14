@@ -416,6 +416,26 @@ export class JsonFileStorage implements IStorage {
     await this.saveData('spreadsheets');
   }
 
+  async duplicateSpreadsheet(id: number, ownerId: number): Promise<Spreadsheet> {
+    const original = await this.getSpreadsheet(id);
+    if (!original) throw new Error("Spreadsheet not found");
+    
+    const duplicate: Spreadsheet = {
+      id: this.counters.spreadsheets++,
+      name: `Copy of ${original.name}`,
+      description: original.description,
+      ownerId,
+      isPublic: false,
+      shareSettings: original.shareSettings,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.data.spreadsheets.push(duplicate);
+    await this.saveData('spreadsheets');
+    return duplicate;
+  }
+
   async getSheetsBySpreadsheet(spreadsheetId: number): Promise<Sheet[]> {
     return this.data.sheets.filter(s => s.spreadsheetId === spreadsheetId);
   }

@@ -79,23 +79,5 @@
     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjQ1NjgwNywiZXhwIjoxNzUzMDYxNjA3fQ.lpTbbIbJBLY9TD5NacjokjX2hlPxcfnxHDsOeaj6buI",
     "expiresAt": "2025-07-15T01:33:27.361Z",
     "isRememberMe": false
-  },
-  {
-    "id": "7638f8f2-6485-4265-a12d-a4d4ef101164",
-    "createdAt": "2025-07-14T01:34:38.308Z",
-    "userId": 1,
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjQ1Njg3OCwiZXhwIjoxNzUyNTQzMjc4fQ.cv39MU3MV6g7dYZVP93k1LNWXR0yajHNQo9c-x9bV_k",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjQ1Njg3OCwiZXhwIjoxNzUzMDYxNjc4fQ.uo0yWmxOrYW1dd24RyC5DBl63LdQ1jE0WpNwquHME0I",
-    "expiresAt": "2025-07-15T01:34:38.307Z",
-    "isRememberMe": false
-  },
-  {
-    "id": "cc0696d3-a5d6-4517-b65f-8a2b9339e7b6",
-    "createdAt": "2025-07-14T01:35:17.289Z",
-    "userId": 1,
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjQ1NjkxNywiZXhwIjoxNzUyNTQzMzE3fQ.p8fN2vzBXwQ5aJEyZt9sysajtd8JhKyK-TQXJ2Uk8tY",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjQ1NjkxNywiZXhwIjoxNzUzMDYxNzE3fQ.wZaLYnJzztscKN2aPRwK8CQ2OUTskFeDhh8v3-n4gFQ",
-    "expiresAt": "2025-07-15T01:35:17.289Z",
-    "isRememberMe": false
   }
 ]

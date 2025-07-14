@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NotFound from "@/pages/not-found";
 import SpreadsheetPage from "@/pages/spreadsheet";
+import DashboardPage from "@/pages/dashboard";
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -26,7 +27,7 @@ function Router() {
       </Route>
       <Route path="/dashboard">
         <ProtectedRoute>
-          <SpreadsheetPage />
+          <DashboardPage />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

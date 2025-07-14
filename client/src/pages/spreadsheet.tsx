@@ -1,7 +1,8 @@
 import { useParams } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ResizableGrid } from "@/components/spreadsheet/ResizableGrid";
+import { GoogleSheetsGrid } from "@/components/spreadsheet/GoogleSheetsGrid";
+import { RealTimeCollaboration } from "@/components/spreadsheet/RealTimeCollaboration";
 import { FormulaBar } from "@/components/spreadsheet/FormulaBar";
 import { FormattingToolbar } from "@/components/spreadsheet/FormattingToolbar";
 import { MenuBar } from "@/components/spreadsheet/MenuBar";
@@ -164,10 +165,7 @@ export default function SpreadsheetPage() {
         formula: processedFormula
       }, processedValue, processedFormula);
       
-      toast({
-        title: "Cell Updated",
-        description: `Cell ${String.fromCharCode(64 + column)}${row} updated successfully`,
-      });
+      // Silent cell update - no toast notification for better UX
     } catch (error) {
       console.error('Error updating cell:', error);
       toast({
@@ -193,10 +191,7 @@ export default function SpreadsheetPage() {
         break;
         
       case 'saveSpreadsheet':
-        toast({
-          title: "Saved",
-          description: "All changes are automatically saved",
-        });
+        // Auto-save notification removed for cleaner UX
         break;
 
       case 'printSpreadsheet':
@@ -217,10 +212,7 @@ export default function SpreadsheetPage() {
           const textData = cellsData.map(cell => cell.value).join('\t');
           navigator.clipboard?.writeText(textData);
           
-          toast({
-            title: "Copied",
-            description: `${selectedCells.length} cells copied`,
-          });
+          // Silent copy operation
         }
         break;
 
@@ -242,10 +234,7 @@ export default function SpreadsheetPage() {
             await handleCellUpdate(cell.row, cell.column, "");
           }
           
-          toast({
-            title: "Cut",
-            description: `${selectedCells.length} cells cut`,
-          });
+          // Silent cut operation
         }
         break;
 
@@ -263,10 +252,7 @@ export default function SpreadsheetPage() {
               }
             }
             
-            toast({
-              title: "Pasted",
-              description: `${values.length} values pasted`,
-            });
+            // Silent paste operation
           } catch (error) {
             toast({
               title: "Paste Failed",
@@ -286,10 +272,7 @@ export default function SpreadsheetPage() {
         }
         setSelectedCells(allCells);
         setSelectionRange({ startRow: 1, startCol: 1, endRow: 100, endCol: 26 });
-        toast({
-          title: "Select All",
-          description: "All cells selected",
-        });
+        // Silent select all operation
         break;
 
       case 'delete':
@@ -297,10 +280,7 @@ export default function SpreadsheetPage() {
           for (const cell of selectedCells) {
             await handleCellUpdate(cell.row, cell.column, "");
           }
-          toast({
-            title: "Deleted",
-            description: `${selectedCells.length} cells cleared`,
-          });
+          // Silent delete operation
         }
         break;
 
@@ -806,20 +786,42 @@ export default function SpreadsheetPage() {
           {currentSheet && (
             <>
               <div className="h-full overflow-hidden">
-                <ResizableGrid
+                <GoogleSheetsGrid
                   sheetId={currentSheet.id}
+                  cells={cells || []}
+                  onCellSelect={handleCellSelect}
+                  onCellEdit={handleCellUpdate}
                   selectedCell={selectedCell}
                   isEditing={isEditing}
-                  setIsEditing={setIsEditing}
-                  formulaValue={formulaValue}
-                  setFormulaValue={setFormulaValue}
-                  onCellUpdate={handleCellUpdate}
-                  realtimeUpdates={realtimeUpdates}
-                  gridLinesVisible={gridLinesVisible}
-                  zoom={zoom}
-                  onCellSelect={handleCellSelect}
+                  onEditingChange={setIsEditing}
                 />
               </div>
+              
+              {/* Real-time Collaboration */}
+              <RealTimeCollaboration
+                spreadsheetId={spreadsheetId}
+                sheetId={currentSheet.id}
+                currentCell={selectedCell}
+                isEditing={isEditing}
+                onCellUpdate={(update) => {
+                  // Handle real-time cell updates from other users
+                  queryClient.invalidateQueries({ queryKey: ["/api/sheets", currentSheet.id, "cells"] });
+                }}
+                onCollaboratorJoin={(user) => {
+                  toast({
+                    title: "Collaborator Joined",
+                    description: `${user.username} joined the spreadsheet`,
+                    duration: 2000,
+                  });
+                }}
+                onCollaboratorLeave={(userId) => {
+                  toast({
+                    title: "Collaborator Left", 
+                    description: `A collaborator left the spreadsheet`,
+                    duration: 2000,
+                  });
+                }}
+              />
               
               {/* Chart Overlay */}
               <ChartManager

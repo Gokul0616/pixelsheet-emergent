@@ -4,19 +4,19 @@
 
 This is a comprehensive Google Sheets clone built with modern web technologies. The application features a full-stack architecture with real-time collaboration capabilities, advanced spreadsheet functionality, and a polished user interface that closely mimics Google Sheets. 
 
-### Recent Updates (January 2025)
-- ✓ Implemented comprehensive FormattingToolbar with bold, italic, underline, font selection, colors, and alignment
-- ✓ Added real-time WebSocket collaboration with live user presence indicators
-- ✓ Created ShareDialog component for managing spreadsheet permissions and collaborators
-- ✓ Integrated online/offline status indicators and connection management
-- ✓ Enhanced UI with live collaboration features similar to Google Sheets
-- ✓ Successfully migrated from Replit Agent to Replit environment (July 2025)
-- ✓ Fixed cell value display and editing functionality with proper API integration
-- ✓ Implemented advanced features: Data validation, conditional formatting, pivot tables
-- ✓ Added column/row resizing with drag borders and auto-fit functionality
-- ✓ Enhanced import/export capabilities with multiple formats (Excel, PDF, JSON)
-- ✓ Improved scroll behavior and virtual grid performance
-- ✓ Added smart fill with pattern detection and auto-suggestions
+### Recent Updates (July 2025)
+- ✓ Implemented Google Sheets-like grid with comprehensive cell selection and keyboard shortcuts
+- ✓ Added drag-to-copy functionality and multi-cell selection with range support
+- ✓ Created production-grade multi-tenant architecture with user-specific spreadsheet isolation
+- ✓ Enhanced authentication system with proper JWT token handling and session management
+- ✓ Implemented real-time collaboration with WebSocket support and live user presence
+- ✓ Removed excessive toast notifications - now only shows important alerts (user join/leave)
+- ✓ Added comprehensive dashboard for spreadsheet management with create, duplicate, delete
+- ✓ Fixed cell editing and saving with proper authentication and permissions
+- ✓ Implemented Google Sheets keyboard shortcuts (Ctrl+C, Ctrl+V, Arrow keys, F2, etc.)
+- ✓ Added cell drag operations for copying data patterns
+- ✓ Created multi-tenant data isolation - each user has separate spreadsheets
+- ✓ Enhanced UI/UX to closely match Google Sheets experience
 
 ## User Preferences
 
