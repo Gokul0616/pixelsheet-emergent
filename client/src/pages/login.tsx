@@ -53,7 +53,10 @@ export default function LoginPage() {
           title: "Welcome back!",
           description: "You have been successfully logged in.",
         });
-        setLocation("/spreadsheet/1");
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+          setLocation("/dashboard");
+        }, 100);
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Login failed");
@@ -78,7 +81,10 @@ export default function LoginPage() {
         title: "Welcome back!",
         description: "You have been successfully logged in.",
       });
-      setLocation("/spreadsheet/1");
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 100);
     } catch (error) {
       setError(error instanceof Error ? error.message : "MFA verification failed");
     } finally {
